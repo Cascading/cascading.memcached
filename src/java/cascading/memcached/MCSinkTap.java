@@ -1,33 +1,18 @@
 /*
- * Copyright (c) 2010 Concurrent, Inc. All Rights Reserved.
+ * Copyright (c) 2007-2012 Concurrent, Inc. All Rights Reserved.
  *
- * Project and contact information: http://www.cascading.org/
- *
- * This file is part of the Cascading project.
- *
- * Cascading is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * Cascading is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Cascading.  If not, see <http://www.gnu.org/licenses/>.
+ * Project and contact information: http://www.concurrentinc.com/
  */
 
 package cascading.memcached;
 
 import java.io.IOException;
 
+import cascading.flow.FlowProcess;
+import cascading.tap.SinkMode;
 import cascading.tap.SinkTap;
 import cascading.tuple.TupleEntryCollector;
 import cascading.util.Util;
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.mapred.JobConf;
 
 /**
  * Class MCSinkTap is a {@link cascading.tap.Tap} class only support sinking data to a Memcached cluster (or cluster supporting
@@ -39,7 +24,7 @@ import org.apache.hadoop.mapred.JobConf;
  * @see cascading.memcached.MCTupleEntryScheme
  * @see cascading.memcached.MCDelimitedScheme
  */
-public class MCSinkTap extends SinkTap
+public class MCSinkTap<Config> extends SinkTap<Config, Object>
   {
   String hostnames = null;
   boolean useBinaryProtocol = true;
@@ -54,7 +39,7 @@ public class MCSinkTap extends SinkTap
 
   public MCSinkTap( String hostnames, MCBaseScheme scheme, boolean useBinaryProtocol )
     {
-    this( hostnames, scheme, useBinaryProtocol, 1 );
+    this( hostnames, scheme, useBinaryProtocol, 5 );
     }
 
   public MCSinkTap( String hostnames, MCBaseScheme scheme, boolean useBinaryProtocol, int shutdownTimeoutSec )
@@ -64,49 +49,45 @@ public class MCSinkTap extends SinkTap
 
   public MCSinkTap( String hostnames, MCBaseScheme scheme, boolean useBinaryProtocol, int shutdownTimeoutSec, int flushThreshold )
     {
-    super( scheme );
+    super( scheme, SinkMode.UPDATE );
     this.hostnames = hostnames;
     this.useBinaryProtocol = useBinaryProtocol;
     this.shutdownTimeoutSec = shutdownTimeoutSec;
     this.flushThreshold = flushThreshold;
     }
 
-  public Path getPath()
+  @Override
+  public TupleEntryCollector openForWrite( FlowProcess<Config> flowProcess, Object output ) throws IOException
     {
-    return new Path( "memcached:/" + hostnames.replaceAll( ",|:", "_" ) );
+    return new MCSchemeCollector( flowProcess, (MCBaseScheme) getScheme(), hostnames, useBinaryProtocol, shutdownTimeoutSec );
     }
 
   @Override
-  public boolean isWriteDirect()
+  public String getIdentifier()
     {
-    return true;
-    }
-
-  public TupleEntryCollector openForWrite( JobConf conf ) throws IOException
-    {
-    return new MCOutputCollector( hostnames, useBinaryProtocol, shutdownTimeoutSec );
+    return "memcached/" + hostnames.replaceAll( ",|:", "_" );
     }
 
   @Override
-  public boolean makeDirs( JobConf conf ) throws IOException
+  public boolean createResource( Config conf ) throws IOException
     {
     return true;
     }
 
   @Override
-  public boolean deletePath( JobConf conf ) throws IOException
+  public boolean deleteResource( Config conf ) throws IOException
     {
     return true;
     }
 
   @Override
-  public boolean pathExists( JobConf conf ) throws IOException
+  public boolean resourceExists( Config conf ) throws IOException
     {
     return true;
     }
 
   @Override
-  public long getPathModified( JobConf conf ) throws IOException
+  public long getModifiedTime( Config conf ) throws IOException
     {
     return 0; // always stale
     }

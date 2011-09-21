@@ -1,58 +1,89 @@
 /*
- * Copyright (c) 2010 Concurrent, Inc. All Rights Reserved.
+ * Copyright (c) 2007-2012 Concurrent, Inc. All Rights Reserved.
  *
- * Project and contact information: http://www.cascading.org/
- *
- * This file is part of the Cascading project.
- *
- * Cascading is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * Cascading is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Cascading.  If not, see <http://www.gnu.org/licenses/>.
+ * Project and contact information: http://www.concurrentinc.com/
  */
 
 package cascading.memcached;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
 
-import cascading.ClusterTestCase;
+import cascading.PlatformTestCase;
 import cascading.flow.Flow;
-import cascading.flow.FlowConnector;
 import cascading.pipe.Pipe;
-import cascading.scheme.TextDelimited;
-import cascading.tap.Hfs;
 import cascading.tap.Tap;
+import cascading.test.HadoopPlatform;
+import cascading.test.LocalPlatform;
+import cascading.test.PlatformRunner;
 import cascading.tuple.Fields;
 import cascading.tuple.Tuple;
+import com.thimbleware.jmemcached.CacheImpl;
+import com.thimbleware.jmemcached.Key;
+import com.thimbleware.jmemcached.LocalCacheElement;
+import com.thimbleware.jmemcached.MemCacheDaemon;
+import com.thimbleware.jmemcached.storage.CacheStorage;
+import com.thimbleware.jmemcached.storage.hash.ConcurrentLinkedHashMap;
 import net.spy.memcached.AddrUtil;
 import net.spy.memcached.ConnectionFactoryBuilder;
 import net.spy.memcached.MemcachedClient;
+import org.apache.log4j.Level;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 /**
  *
  */
-public class MCTest extends ClusterTestCase
+@PlatformRunner.Platform({LocalPlatform.class, HadoopPlatform.class})
+public class MCTest extends PlatformTestCase
   {
   String inputFile = "src/test/data/small.txt";
+  private MemCacheDaemon<LocalCacheElement> daemon;
+  private boolean useBinaryProtocol;
 
   public MCTest()
     {
-    super( "memcached tests" );
+    super( true, 1, 4 );
+    }
 
+  @Before
+  @Override
+  public void setUp() throws IOException
+    {
+    useBinaryProtocol = false;
+    super.setUp();
+
+    daemon = new MemCacheDaemon<LocalCacheElement>();
+
+    CacheStorage<Key, LocalCacheElement> storage =
+      ConcurrentLinkedHashMap.create( ConcurrentLinkedHashMap.EvictionPolicy.FIFO, Short.MAX_VALUE, Integer.MAX_VALUE );
+
+    daemon.setCache( new CacheImpl( storage ) );
+    daemon.setBinary( useBinaryProtocol );
+    daemon.setAddr( new InetSocketAddress( "127.0.0.1", 11211 ) );
+    daemon.setIdleTime( 100000 );
+    daemon.setVerbose( true );
+
+    daemon.start();
+
+    org.apache.log4j.Logger.getLogger( "cascading" ).setLevel( Level.toLevel( "INFO" ) );
+    org.apache.log4j.Logger.getLogger( "org.apache.hadoop" ).setLevel( Level.toLevel( "INFO" ) );
+    }
+
+  @After
+  @Override
+  public void tearDown() throws IOException
+    {
+    super.tearDown();
+
+    daemon.stop();
     }
 
   private MemcachedClient getClient() throws IOException
     {
     ConnectionFactoryBuilder builder = new ConnectionFactoryBuilder();
-    builder = builder.setProtocol( ConnectionFactoryBuilder.Protocol.BINARY );
+    builder = builder.setProtocol( useBinaryProtocol ? ConnectionFactoryBuilder.Protocol.BINARY : ConnectionFactoryBuilder.Protocol.TEXT );
     builder = builder.setOpQueueMaxBlockTime( 1000 );
 
     return new MemcachedClient( builder.build(), AddrUtil.getAddresses( "localhost:11211" ) );
@@ -64,10 +95,10 @@ public class MCTest extends ClusterTestCase
 //    4 d
 //    5 e
 
+  @Test
   public void testTupleScheme() throws IOException
     {
-    runTupleTest( true );
-    runTupleTest( false );
+    runTupleTest( useBinaryProtocol );
     }
 
   private void runTupleTest( boolean useBinary ) throws IOException
@@ -85,10 +116,10 @@ public class MCTest extends ClusterTestCase
     client.shutdown();
     }
 
+  @Test
   public void testDelimitedScheme() throws IOException
     {
-    runDelimitedTest( true );
-    runDelimitedTest( false );
+    runDelimitedTest( useBinaryProtocol );
     }
 
   private void runDelimitedTest( boolean useBinary ) throws IOException
@@ -106,15 +137,16 @@ public class MCTest extends ClusterTestCase
     client.shutdown();
     }
 
-  private void runTestFor( MCBaseScheme scheme, boolean useBinary )
+  private void runTestFor( MCBaseScheme scheme, boolean useBinary ) throws IOException
     {
-    Tap source = new Hfs( new TextDelimited( new Fields( "num", "lower", "upper" ), " " ), inputFile );
+    getPlatform().copyFromLocal( inputFile );
+
+    Tap source = getPlatform().getDelimitedFile( new Fields( "num", "lower", "upper" ), " ", inputFile );
 
     Tap sink = new MCSinkTap( "localhost:11211", scheme, useBinary );
 
-    Flow flow = new FlowConnector( getProperties() ).connect( source, sink, new Pipe( "identity" ) );
+    Flow flow = getPlatform().getFlowConnector().connect( source, sink, new Pipe( "identity" ) );
 
     flow.complete();
     }
-
   }

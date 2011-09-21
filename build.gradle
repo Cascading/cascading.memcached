@@ -1,0 +1,134 @@
+/*
+ * Copyright (c) 2007-2012 Concurrent, Inc. All Rights Reserved.
+ *
+ * Project and contact information: http://www.concurrentinc.com/
+ */
+
+import java.text.SimpleDateFormat
+
+apply plugin: 'java'
+apply plugin: 'idea'
+
+project.archivesBaseName = 'cascading-memcached'
+
+if( project.properties[ 'teamcity' ] ) // make them system properties
+  System.properties.putAll( project.properties[ 'teamcity' ] )
+
+if( System.properties[ 'aws.properties' ] )
+{
+  file( System.properties[ 'aws.properties' ] ).withReader { reader ->
+    def awsProperties = new Properties()
+    awsProperties.load( reader )
+    System.properties.putAll( awsProperties )
+  }
+}
+
+def versionProperties = new Properties()
+file( 'version.properties' ).withInputStream { versionProperties.load( it ) }
+
+project.version = versionProperties[ 'cascading.memcached.version' ]
+
+timestamp = new SimpleDateFormat( "yyyyMMdd" ).format( new Date() )
+
+configurations {
+  sshAntTask
+  s3AntTask
+}
+
+dependencies {
+  sshAntTask 'org.apache.ant:ant-jsch:1.7.1', 'jsch:jsch:0.1.29'
+  s3AntTask 'thirdparty:awstasks:0.3'
+}
+
+repositories {
+  mavenLocal()
+  mavenCentral()
+  mavenRepo name: 'conjars', url: 'http://conjars.org/repo/'
+  mavenRepo name: 'apache', url: 'https://repository.apache.org/content/repositories/releases/'
+  mavenRepo name: 'Spy Repository', url: 'http://files.couchbase.com/maven2/'
+}
+
+dependencies {
+  compile( 'cascading:cascading-core:2.0.0-wip-dev' ) { changing = true }
+  compile( 'spy:spymemcached:2.8.1' )
+
+  testCompile( 'cascading:cascading-test:2.0.0-wip-dev' ) { changing = true }
+  testCompile( 'com.thimbleware.jmemcached:jmemcached-core:1.0.0' )
+  testCompile( 'junit:junit:4.8.+' )
+}
+
+sourceSets {
+  main {
+    java {
+      srcDir 'src/java'
+    }
+    resources {
+      srcDir 'src/resources'
+    }
+  }
+
+  test {
+    java {
+      srcDir 'src/test'
+    }
+  }
+}
+
+jar {
+  manifest {
+    attributes( "Build-Date": "${timestamp}" )
+  }
+}
+
+task repoUpload( dependsOn: jar ) {
+  repoURL = 'repo@conjars.org:'
+  repoPort = '22'
+  repoKeyfile = System.properties[ 'repo.keyfile' ]
+  repoKeyfilePassphrase = ''
+}
+
+repoUpload << {
+
+  pom {
+    artifactId = "cascading-${artifactId}"
+
+    whenConfigured { pom ->
+      pom.dependencies.findAll { dep ->
+        dep.groupId == 'cascading'
+      }.each { dep ->
+        dep.artifactId = "cascading-${dep.artifactId}"
+      }
+    }
+
+    project {
+      licenses {
+        license {
+          name 'The Apache Software License, Version 2.0'
+          url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+          distribution 'repo'
+        }
+      }
+    }
+  }.writeTo( "${buildDir}/poms/${project.name}/pom.xml" )
+
+  ant.taskdef( name: 'scp', classname: 'org.apache.tools.ant.taskdefs.optional.ssh.Scp',
+          classpath: configurations.sshAntTask.asPath )
+
+  assert repoKeyfile
+
+  // conjars expects to see no directories, just files
+  ant.scp( todir: repoURL,
+          keyfile: repoKeyfile, passphrase: repoKeyfilePassphrase, port: repoPort, trust: 'true' ) {
+
+    fileset( dir: "${buildDir}/poms/${project.name}" ) {
+      name = "pom.xml"
+    }
+    fileset( dir: "${buildDir}/libs/" ) {
+      name = "cascading-${project.name}-${releaseVersion}.jar"
+    }
+
+    fileset( dir: "${buildDir}/libs/" ) {
+      name = "cascading-${project.name}-${releaseVersion}-sources.jar"
+    }
+  }
+}
