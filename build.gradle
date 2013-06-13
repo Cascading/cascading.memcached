@@ -1,43 +1,46 @@
 /*
- * Copyright (c) 2007-2012 Concurrent, Inc. All Rights Reserved.
+ * Copyright (c) 2007-2013 Concurrent, Inc. All Rights Reserved.
  *
- * Project and contact information: http://www.concurrentinc.com/
+ * Project and contact information: http://www.cascading.org/
+ *
+ * This file is part of the Cascading project.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 import java.text.SimpleDateFormat
 
 apply plugin: 'java'
+apply plugin: 'maven'
 apply plugin: 'idea'
+apply plugin: 'eclipse'
 
-project.archivesBaseName = 'cascading-memcached'
+ext.cascadingVersion = '2.2.0-+'
 
-if( project.properties[ 'teamcity' ] ) // make them system properties
-  System.properties.putAll( project.properties[ 'teamcity' ] )
-
-if( System.properties[ 'aws.properties' ] )
-{
-  file( System.properties[ 'aws.properties' ] ).withReader { reader ->
-    def awsProperties = new Properties()
-    awsProperties.load( reader )
-    System.properties.putAll( awsProperties )
-  }
-}
+apply from: "etc/properties.gradle"
 
 def versionProperties = new Properties()
 file( 'version.properties' ).withInputStream { versionProperties.load( it ) }
 
-project.version = versionProperties[ 'cascading.memcached.version' ]
+group = 'cascading'
+version = versionProperties[ 'cascading.memcached.version' ]
 
-timestamp = new SimpleDateFormat( "yyyyMMdd" ).format( new Date() )
+ext.timestamp = new SimpleDateFormat( "yyyyMMdd" ).format( new Date() )
 
 configurations {
-  sshAntTask
-  s3AntTask
-}
-
-dependencies {
-  sshAntTask 'org.apache.ant:ant-jsch:1.7.1', 'jsch:jsch:0.1.29'
-  s3AntTask 'thirdparty:awstasks:0.3'
+  testArtifacts {
+    extendsFrom testRuntime
+  }
 }
 
 repositories {
@@ -49,29 +52,50 @@ repositories {
 }
 
 dependencies {
-  compile( 'cascading:cascading-core:2.0.0-wip-dev' ) { changing = true }
+  compile group: 'cascading', name: 'cascading-core', version: cascadingVersion, changing: true
+  compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.5'
+  compile group: 'org.slf4j', name: 'slf4j-log4j12', version: '1.7.5'
+  compile group: 'log4j', name: 'log4j', version: '1.2.17'
   compile( 'spy:spymemcached:2.8.1' )
 
-  testCompile( 'cascading:cascading-test:2.0.0-wip-dev' ) { changing = true }
+  testCompile group: 'cascading', name: 'cascading-local', version: cascadingVersion, changing: true
+  testCompile group: 'cascading', name: 'cascading-hadoop', version: cascadingVersion, changing: true
+  testCompile group: 'cascading', name: 'cascading-core', version: cascadingVersion, classifier: 'tests', changing: true
+  testCompile group: 'cascading', name: 'cascading-local', version: cascadingVersion, classifier: 'tests', changing: true
+  testCompile group: 'cascading', name: 'cascading-hadoop', version: cascadingVersion, classifier: 'tests', changing: true
+  testCompile group: 'cascading', name: 'cascading-platform', version: cascadingVersion, classifier: 'tests', changing: true
   testCompile( 'com.thimbleware.jmemcached:jmemcached-core:1.0.0' )
   testCompile( 'junit:junit:4.8.+' )
 }
 
-sourceSets {
-  main {
-    java {
-      srcDir 'src/java'
-    }
-    resources {
-      srcDir 'src/resources'
-    }
-  }
+task sourcesJar( type: Jar, dependsOn: classes ) {
+  from sourceSets.main.allSource
+  classifier = 'sources'
+}
 
-  test {
-    java {
-      srcDir 'src/test'
-    }
-  }
+task javadocJar( type: Jar, dependsOn: javadoc ) {
+  classifier = 'javadoc'
+  from javadoc.destinationDir
+}
+
+task testsJar( type: Jar, dependsOn: testClasses ) {
+  from sourceSets.test.output
+  classifier = 'tests'
+}
+
+task testSourcesJar( type: Jar, dependsOn: classes ) {
+  from sourceSets.test.allSource
+  classifier = 'test-sources'
+}
+
+artifacts {
+  archives jar
+  archives sourcesJar
+  archives javadocJar
+  archives testsJar
+  archives testSourcesJar
+  testArtifacts testsJar
+  testArtifacts testSourcesJar
 }
 
 jar {
@@ -80,27 +104,30 @@ jar {
   }
 }
 
-task repoUpload( dependsOn: jar ) {
-  repoURL = 'repo@conjars.org:'
-  repoPort = '22'
-  repoKeyfile = System.properties[ 'repo.keyfile' ]
-  repoKeyfilePassphrase = ''
+test {
+  jvmArgs '-Xmx756m'
+
+  enableAssertions = false
+
+  include '**/*Test.class'
 }
 
-repoUpload << {
+uploadArchives {
 
-  pom {
-    artifactId = "cascading-${artifactId}"
+  repositories.mavenDeployer {
+    configuration = configurations.archives
 
-    whenConfigured { pom ->
-      pom.dependencies.findAll { dep ->
-        dep.groupId == 'cascading'
-      }.each { dep ->
-        dep.artifactId = "cascading-${dep.artifactId}"
-      }
+    repository( url: repoUrl ) {
+      authentication( userName: repoUserName, password: repoPassword )
     }
 
-    project {
+    pom.project {
+      description 'Cascading Memcached is a simple adapter for Memcached.'
+      inceptionYear '2012'
+      url 'http://cascading.org/'
+      scm {
+        url 'https://github.com/Cascading/cascading-memcached.git'
+      }
       licenses {
         license {
           name 'The Apache Software License, Version 2.0'
@@ -108,27 +135,6 @@ repoUpload << {
           distribution 'repo'
         }
       }
-    }
-  }.writeTo( "${buildDir}/poms/${project.name}/pom.xml" )
-
-  ant.taskdef( name: 'scp', classname: 'org.apache.tools.ant.taskdefs.optional.ssh.Scp',
-          classpath: configurations.sshAntTask.asPath )
-
-  assert repoKeyfile
-
-  // conjars expects to see no directories, just files
-  ant.scp( todir: repoURL,
-          keyfile: repoKeyfile, passphrase: repoKeyfilePassphrase, port: repoPort, trust: 'true' ) {
-
-    fileset( dir: "${buildDir}/poms/${project.name}" ) {
-      name = "pom.xml"
-    }
-    fileset( dir: "${buildDir}/libs/" ) {
-      name = "cascading-${project.name}-${releaseVersion}.jar"
-    }
-
-    fileset( dir: "${buildDir}/libs/" ) {
-      name = "cascading-${project.name}-${releaseVersion}-sources.jar"
     }
   }
 }
