@@ -39,31 +39,35 @@ import cascading.tuple.TupleEntryCollector;
  */
 public class MCSinkTap<Config> extends SinkTap<Config, Object>
   {
-  String hostnames = null;
-  boolean useBinaryProtocol = true;
-  int shutdownTimeoutSec = 5;
-  int flushThreshold = 1000;
+  public static final boolean USE_BINARY = true;
+  public static final int SHUTDOWN_TIMEOUT_SEC = 5;
+  public static final int FLUSH_THRESHOLD = 1000;
 
-  public MCSinkTap( String hostnames, MCBaseScheme scheme )
+  String hostNames = null;
+  boolean useBinaryProtocol = USE_BINARY;
+  int shutdownTimeoutSec = SHUTDOWN_TIMEOUT_SEC;
+  int flushThreshold = FLUSH_THRESHOLD;
+
+  public MCSinkTap( String hostNames, MCBaseScheme scheme )
     {
     super( scheme );
-    this.hostnames = hostnames;
+    this.hostNames = hostNames;
     }
 
-  public MCSinkTap( String hostnames, MCBaseScheme scheme, boolean useBinaryProtocol )
+  public MCSinkTap( String hostNames, MCBaseScheme scheme, boolean useBinaryProtocol )
     {
-    this( hostnames, scheme, useBinaryProtocol, 5 );
+    this( hostNames, scheme, useBinaryProtocol, 5 );
     }
 
-  public MCSinkTap( String hostnames, MCBaseScheme scheme, boolean useBinaryProtocol, int shutdownTimeoutSec )
+  public MCSinkTap( String hostNames, MCBaseScheme scheme, boolean useBinaryProtocol, int shutdownTimeoutSec )
     {
-    this( hostnames, scheme, useBinaryProtocol, shutdownTimeoutSec, 1000 );
+    this( hostNames, scheme, useBinaryProtocol, shutdownTimeoutSec, 1000 );
     }
 
-  public MCSinkTap( String hostnames, MCBaseScheme scheme, boolean useBinaryProtocol, int shutdownTimeoutSec, int flushThreshold )
+  public MCSinkTap( String hostNames, MCBaseScheme scheme, boolean useBinaryProtocol, int shutdownTimeoutSec, int flushThreshold )
     {
     super( scheme, SinkMode.UPDATE );
-    this.hostnames = hostnames;
+    this.hostNames = hostNames;
     this.useBinaryProtocol = useBinaryProtocol;
     this.shutdownTimeoutSec = shutdownTimeoutSec;
     this.flushThreshold = flushThreshold;
@@ -72,13 +76,16 @@ public class MCSinkTap<Config> extends SinkTap<Config, Object>
   @Override
   public TupleEntryCollector openForWrite( FlowProcess<Config> flowProcess, Object output ) throws IOException
     {
-    return new MCSchemeCollector( flowProcess, (MCBaseScheme) getScheme(), hostnames, useBinaryProtocol, shutdownTimeoutSec );
+    return new MCSchemeCollector( flowProcess, (MCBaseScheme) getScheme(), hostNames, useBinaryProtocol, shutdownTimeoutSec, flushThreshold );
     }
 
   @Override
   public String getIdentifier()
     {
-    return "memcached/" + hostnames.replaceAll( ",|:", "_" );
+    if( useBinaryProtocol )
+      return "memcache://" + hostNames.replaceAll( ",|:", "_" );
+    else
+      return "memcachet://" + hostNames.replaceAll( ",|:", "_" ); // t for text
     }
 
   @Override
