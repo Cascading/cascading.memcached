@@ -65,7 +65,7 @@ dependencies {
   testCompile group: 'cascading', name: 'cascading-hadoop', version: cascadingVersion, classifier: 'tests', changing: true
   testCompile group: 'cascading', name: 'cascading-platform', version: cascadingVersion, classifier: 'tests', changing: true
   testCompile( 'com.thimbleware.jmemcached:jmemcached-core:1.0.0' )
-  testCompile( 'junit:junit:4.8.+' )
+  testCompile( 'junit:junit:4.11' )
 }
 
 task sourcesJar( type: Jar, dependsOn: classes ) {
