@@ -31,22 +31,28 @@ public class MCDelimitedScheme<Config> extends MCTupleEntryScheme<Config, String
   {
   public static final String DELIMITER = "\t";
 
-  String valueDelim = DELIMITER;
+  String valueDelimiter = DELIMITER;
 
   public MCDelimitedScheme( Fields keyFields, Fields valueFields )
     {
     super( keyFields, valueFields );
     }
 
-  public MCDelimitedScheme( Fields keyFields, Fields valueFields, String valueDelim )
+  public MCDelimitedScheme( Fields keyFields, Fields valueFields, boolean cleanKey, String keyDelimiter, String valueDelimiter )
+    {
+    super( keyFields, valueFields, cleanKey, keyDelimiter );
+    this.valueDelimiter = valueDelimiter;
+    }
+
+  public MCDelimitedScheme( Fields keyFields, Fields valueFields, String valueDelimiter )
     {
     super( keyFields, valueFields );
-    this.valueDelim = valueDelim;
+    this.valueDelimiter = valueDelimiter;
     }
 
   @Override
   protected String getValue( TupleEntry tupleEntry )
     {
-    return tupleEntry.selectTuple( getValueFields() ).toString( valueDelim, false );
+    return tupleEntry.selectTuple( getValueFields() ).toString( valueDelimiter, false );
     }
   }

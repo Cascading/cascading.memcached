@@ -24,6 +24,11 @@ apply plugin: 'java'
 apply plugin: 'maven'
 apply plugin: 'idea'
 apply plugin: 'eclipse'
+apply plugin: 'fatjar'
+apply plugin: 'propdeps'
+apply plugin: 'propdeps-idea'
+apply plugin: 'propdeps-eclipse'
+apply plugin: 'propdeps-maven'
 
 ext.cascadingVersion = '2.2.0-+'
 
@@ -36,6 +41,18 @@ group = 'cascading'
 version = versionProperties[ 'cascading.memcached.version' ]
 
 ext.timestamp = new SimpleDateFormat( "yyyyMMdd" ).format( new Date() )
+
+buildscript {
+  repositories {
+    mavenCentral()
+    maven { url 'http://repo.springsource.org/plugins-release' }
+  }
+
+  dependencies {
+    classpath 'eu.appsatori:gradle-fatjar-plugin:0.2-rc1'
+    classpath 'org.springframework.build.gradle:propdeps-plugin:0.0.1'
+  }
+}
 
 configurations {
   testArtifacts {
@@ -52,11 +69,12 @@ repositories {
 }
 
 dependencies {
-  compile group: 'cascading', name: 'cascading-core', version: cascadingVersion, changing: true
-  compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.5'
-  compile group: 'org.slf4j', name: 'slf4j-log4j12', version: '1.7.5'
-  compile group: 'log4j', name: 'log4j', version: '1.2.17'
   compile( 'spy:spymemcached:2.8.1' )
+
+  provided group: 'cascading', name: 'cascading-core', version: cascadingVersion, changing: true
+  provided group: 'org.slf4j', name: 'slf4j-api', version: '1.7.5'
+  provided group: 'org.slf4j', name: 'slf4j-log4j12', version: '1.7.5'
+  provided group: 'log4j', name: 'log4j', version: '1.2.17'
 
   testCompile group: 'cascading', name: 'cascading-local', version: cascadingVersion, changing: true
   testCompile group: 'cascading', name: 'cascading-hadoop', version: cascadingVersion, changing: true
@@ -88,8 +106,15 @@ task testSourcesJar( type: Jar, dependsOn: classes ) {
   classifier = 'test-sources'
 }
 
+fatJar {
+  classifier = 'provider'
+  exclude 'META-INF/*.DSA'
+  exclude 'META-INF/LICENSE*'
+}
+
 artifacts {
   archives jar
+  archives fatJar
   archives sourcesJar
   archives javadocJar
   archives testsJar

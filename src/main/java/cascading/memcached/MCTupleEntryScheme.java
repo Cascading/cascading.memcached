@@ -20,6 +20,8 @@
 
 package cascading.memcached;
 
+import java.util.regex.Pattern;
+
 import cascading.tuple.Fields;
 import cascading.tuple.TupleEntry;
 
@@ -28,7 +30,13 @@ import cascading.tuple.TupleEntry;
  */
 public abstract class MCTupleEntryScheme<Config, Value> extends MCBaseScheme<Config, TupleEntry, Value>
   {
-  private String keyDelim = ":";
+  public static final String KEY_DELIMITER = ":";
+  public static final boolean CLEAN_KEY_DEFAULT = true;
+
+  private static Pattern cleanPattern = Pattern.compile( "\\s+" );
+
+  private boolean cleanKey = CLEAN_KEY_DEFAULT;
+  private String keyDelim = KEY_DELIMITER;
   private Fields keyFields;
   private Fields valueFields;
 
@@ -42,6 +50,15 @@ public abstract class MCTupleEntryScheme<Config, Value> extends MCBaseScheme<Con
     super( Fields.merge( keyFields, valueFields ) );
     this.keyFields = keyFields;
     this.valueFields = valueFields;
+    this.keyDelim = keyDelim;
+    }
+
+  public MCTupleEntryScheme( Fields keyFields, Fields valueFields, boolean cleanKey, String keyDelim )
+    {
+    super( Fields.merge( keyFields, valueFields ) );
+    this.keyFields = keyFields;
+    this.valueFields = valueFields;
+    this.cleanKey = cleanKey;
     this.keyDelim = keyDelim;
     }
 
@@ -69,7 +86,12 @@ public abstract class MCTupleEntryScheme<Config, Value> extends MCBaseScheme<Con
   @Override
   protected String getKey( TupleEntry tupleEntry )
     {
-    return tupleEntry.selectTuple( getKeyFields() ).toString( getKeyDelim(), false );
+    String key = tupleEntry.selectTuple( getKeyFields() ).toString( getKeyDelim(), false );
+
+    if( cleanKey )
+      key = cleanPattern.matcher( key ).replaceAll( "_" );
+
+    return key;
     }
 
   protected abstract Value getValue( TupleEntry tupleEntry );

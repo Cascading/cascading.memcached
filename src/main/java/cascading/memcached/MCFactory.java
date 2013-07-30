@@ -23,12 +23,16 @@ package cascading.memcached;
 import java.util.Properties;
 
 import cascading.scheme.Scheme;
+import cascading.tap.SinkMode;
 import cascading.tap.Tap;
 import cascading.tuple.Fields;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static cascading.memcached.MCDelimitedScheme.DELIMITER;
 import static cascading.memcached.MCSinkTap.*;
+import static cascading.memcached.MCTupleEntryScheme.CLEAN_KEY_DEFAULT;
+import static cascading.memcached.MCTupleEntryScheme.KEY_DELIMITER;
 
 /**
  *
@@ -43,15 +47,17 @@ public class MCFactory
 
   public static final String FORMAT_KEY_FIELDS = "keyFields";
   public static final String FORMAT_VALUE_FIELDS = "valueFields";
-  public static final String FORMAT_DELIMITER = "delimiter";
+  public static final String FORMAT_CLEAN_KEY = "cleanKey";
+  public static final String FORMAT_KEY_DELIMITER = "keyDelimiter";
+  public static final String FORMAT_VALUE_DELIMITER = "valueDelimiter";
 
-  public Tap createTap( Scheme scheme, String path, Properties properties )
+  public Tap createTap( Scheme scheme, String path, SinkMode sinkMode, Properties properties )
     {
     boolean useBinaryProtocol = Boolean.parseBoolean( properties.getProperty( PROTOCOL_USE_BINARY_PROTOCOL, Boolean.toString( USE_BINARY ) ) );
     int shutdownTimeoutSec = Integer.parseInt( properties.getProperty( PROTOCOL_SHUTDOWN_TIMEOUT_SEC, Integer.toString( SHUTDOWN_TIMEOUT_SEC ) ) );
     int flushThreshold = Integer.parseInt( properties.getProperty( PROTOCOL_FLUSH_THRESHOLD, Integer.toString( FLUSH_THRESHOLD ) ) );
 
-    LOG.info("creating memcached protocol");
+    LOG.info( "creating memcached protocol" );
 
     return new MCSinkTap( path, (MCBaseScheme) scheme, useBinaryProtocol, shutdownTimeoutSec, flushThreshold );
     }
@@ -67,9 +73,11 @@ public class MCFactory
     if( valueFields == null )
       throw new IllegalArgumentException( "valueFields not given" );
 
-    String delimiter = properties.getProperty( FORMAT_DELIMITER, MCDelimitedScheme.DELIMITER );
+    boolean cleanKey = Boolean.parseBoolean( properties.getProperty( FORMAT_CLEAN_KEY, Boolean.toString( CLEAN_KEY_DEFAULT ) ) );
+    String keyDelimiter = properties.getProperty( FORMAT_KEY_DELIMITER, KEY_DELIMITER );
+    String valueDelimiter = properties.getProperty( FORMAT_VALUE_DELIMITER, DELIMITER );
 
-    LOG.info( "creating memcached format with keys: {}, values: {}, delimiter: {}", keyFields, valueFields, delimiter );
+    LOG.info( "creating memcached format with keys: {}, values: {}, delimiter: {}", keyFields, valueFields, valueDelimiter );
 
     Fields keys = new Fields( keyFields.split( "," ) );
     Fields values = new Fields( valueFields.split( "," ) );
@@ -79,6 +87,6 @@ public class MCFactory
 
     LOG.info( "using actual fields keys: {}, values: {}", keys.printVerbose(), values.printVerbose() );
 
-    return new MCDelimitedScheme( keys, values, delimiter );
+    return new MCDelimitedScheme( keys, values, cleanKey, keyDelimiter, valueDelimiter );
     }
   }

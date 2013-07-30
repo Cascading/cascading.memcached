@@ -117,7 +117,7 @@ public class MCTest extends PlatformTestCase
 
   private void runTupleTest( boolean useBinary ) throws IOException
     {
-    runTestFor( (MCBaseScheme) new MCTupleScheme( new Fields( "num" ), new Fields( "lower" ) ), useBinary );
+    runTestFor( new MCTupleScheme( new Fields( "num" ), new Fields( "lower" ) ), useBinary );
 
     MemcachedClient client = getClient();
 
@@ -138,7 +138,7 @@ public class MCTest extends PlatformTestCase
 
   private void runDelimitedTest( boolean useBinary ) throws IOException
     {
-    runTestFor( (MCBaseScheme) new MCDelimitedScheme( new Fields( "num" ), new Fields( "lower" ) ), useBinary );
+    runTestFor( new MCDelimitedScheme( new Fields( "num" ), new Fields( "lower" ) ), useBinary );
 
     MemcachedClient client = getClient();
 
