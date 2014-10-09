@@ -33,12 +33,10 @@ apply plugin: 'propdeps-maven'
 ext.cascadingVersion = '2.6.0-+'
 
 apply from: "etc/properties.gradle"
-
-def versionProperties = new Properties()
-file( 'version.properties' ).withInputStream { versionProperties.load( it ) }
+apply from: "etc/version.gradle"
 
 group = 'cascading'
-version = versionProperties[ 'cascading.memcached.version' ]
+version = releaseVersion
 
 ext.timestamp = new SimpleDateFormat( "yyyyMMdd" ).format( new Date() )
 
