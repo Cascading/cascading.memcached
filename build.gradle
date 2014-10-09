@@ -30,7 +30,7 @@ apply plugin: 'propdeps-idea'
 apply plugin: 'propdeps-eclipse'
 apply plugin: 'propdeps-maven'
 
-ext.cascadingVersion = '2.2.0-+'
+ext.cascadingVersion = '2.6.0-+'
 
 apply from: "etc/properties.gradle"
 
@@ -49,8 +49,8 @@ buildscript {
   }
 
   dependencies {
-    classpath 'eu.appsatori:gradle-fatjar-plugin:0.2-rc1'
-    classpath 'org.springframework.build.gradle:propdeps-plugin:0.0.1'
+    classpath 'eu.appsatori:gradle-fatjar-plugin:0.2'
+    classpath 'org.springframework.build.gradle:propdeps-plugin:0.0.5'
   }
 }
 
@@ -63,9 +63,9 @@ configurations {
 repositories {
   mavenLocal()
   mavenCentral()
-  mavenRepo name: 'conjars', url: 'http://conjars.org/repo/'
-  mavenRepo name: 'apache', url: 'https://repository.apache.org/content/repositories/releases/'
-  mavenRepo name: 'Spy Repository', url: 'http://files.couchbase.com/maven2/'
+  maven{ url 'http://conjars.org/repo/' }
+  maven{ url 'https://repository.apache.org/content/repositories/releases/' }
+  maven{ url 'http://files.couchbase.com/maven2/' }
 }
 
 dependencies {
