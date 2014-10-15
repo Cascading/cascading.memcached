@@ -30,7 +30,7 @@ apply plugin: 'propdeps-idea'
 apply plugin: 'propdeps-eclipse'
 apply plugin: 'propdeps-maven'
 
-ext.cascadingVersion = '2.6.0-+'
+ext.cascadingVersion = '2.6.0'
 
 apply from: "etc/properties.gradle"
 apply from: "etc/version.gradle"
