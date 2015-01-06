@@ -30,7 +30,7 @@ apply plugin: 'propdeps-idea'
 apply plugin: 'propdeps-eclipse'
 apply plugin: 'propdeps-maven'
 
-ext.cascadingVersion = '2.7.0-wip-dev'
+ext.cascadingVersion = '2.7.0-wip-+'
 
 apply from: "etc/properties.gradle"
 apply from: "etc/version.gradle"
