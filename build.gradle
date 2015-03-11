@@ -30,7 +30,7 @@ apply plugin: 'propdeps-idea'
 apply plugin: 'propdeps-eclipse'
 apply plugin: 'propdeps-maven'
 
-ext.cascadingVersion = '2.7.0-wip-+'
+ext.cascadingVersion = '3.0.0-wip-+'
 
 apply from: "etc/properties.gradle"
 apply from: "etc/version.gradle"
@@ -81,7 +81,7 @@ dependencies {
   testCompile group: 'cascading', name: 'cascading-hadoop', version: cascadingVersion, classifier: 'tests', changing: true
   testCompile group: 'cascading', name: 'cascading-platform', version: cascadingVersion, classifier: 'tests', changing: true
   testCompile( 'com.thimbleware.jmemcached:jmemcached-core:1.0.0' )
-  testCompile( 'junit:junit:4.11' )
+  testCompile( 'junit:junit:4.12' )
 }
 
 task sourcesJar( type: Jar, dependsOn: classes ) {

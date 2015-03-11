@@ -26,10 +26,10 @@ import java.net.InetSocketAddress;
 import cascading.PlatformTestCase;
 import cascading.flow.Flow;
 import cascading.pipe.Pipe;
+import cascading.platform.PlatformRunner;
+import cascading.platform.hadoop.HadoopPlatform;
+import cascading.platform.local.LocalPlatform;
 import cascading.tap.Tap;
-import cascading.test.HadoopPlatform;
-import cascading.test.LocalPlatform;
-import cascading.test.PlatformRunner;
 import cascading.tuple.Fields;
 import cascading.tuple.Tuple;
 import com.thimbleware.jmemcached.CacheImpl;
@@ -121,11 +121,11 @@ public class MCTest extends PlatformTestCase
 
     MemcachedClient client = getClient();
 
-    assertEquals( "c", ( (Tuple) client.get( "1" ) ).get( 0 ) );
-    assertEquals( "d", ( (Tuple) client.get( "2" ) ).get( 0 ) );
-    assertEquals( "c", ( (Tuple) client.get( "3" ) ).get( 0 ) );
-    assertEquals( "d", ( (Tuple) client.get( "4" ) ).get( 0 ) );
-    assertEquals( "e", ( (Tuple) client.get( "5" ) ).get( 0 ) );
+    assertEquals( "c", ( (Tuple) client.get( "1" ) ).getObject( 0 ) );
+    assertEquals( "d", ( (Tuple) client.get( "2" ) ).getObject( 0 ) );
+    assertEquals( "c", ( (Tuple) client.get( "3" ) ).getObject( 0 ) );
+    assertEquals( "d", ( (Tuple) client.get( "4" ) ).getObject( 0 ) );
+    assertEquals( "e", ( (Tuple) client.get( "5" ) ).getObject( 0 ) );
 
     client.shutdown();
     }

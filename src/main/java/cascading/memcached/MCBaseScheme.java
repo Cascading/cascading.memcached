@@ -48,17 +48,17 @@ public abstract class MCBaseScheme<Config, Int, Value> extends Scheme<Config, Vo
     }
 
   @Override
-  public void sourceConfInit( FlowProcess<Config> flowProcess, Tap<Config, Void, MCSchemeCollector> output, Config conf )
+  public void sourceConfInit( FlowProcess<? extends Config> flowProcess, Tap<Config, Void, MCSchemeCollector> output, Config conf )
     {
     }
 
   @Override
-  public void sinkConfInit( FlowProcess<Config> flowProcess, Tap<Config, Void, MCSchemeCollector> output, Config conf )
+  public void sinkConfInit( FlowProcess<? extends Config> flowProcess, Tap<Config, Void, MCSchemeCollector> output, Config conf )
     {
     }
 
   @Override
-  public boolean source( FlowProcess<Config> flowProcess, SourceCall<Object[], Void> voidSourceCall ) throws IOException
+  public boolean source( FlowProcess<? extends Config> flowProcess, SourceCall<Object[], Void> voidSourceCall ) throws IOException
     {
     throw new IllegalStateException( "source should never be called" );
     }
@@ -70,7 +70,7 @@ public abstract class MCBaseScheme<Config, Int, Value> extends Scheme<Config, Vo
   protected abstract Value getValue( Int intermediate );
 
   @Override
-  public void sink( FlowProcess<Config> flowProcess, SinkCall<Void, MCSchemeCollector> sinkCall ) throws IOException
+  public void sink( FlowProcess<? extends Config> flowProcess, SinkCall<Void, MCSchemeCollector> sinkCall ) throws IOException
     {
     Int intermediate = getIntermediate( sinkCall.getOutgoingEntry() );
     String key = getKey( intermediate );

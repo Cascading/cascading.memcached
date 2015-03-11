@@ -74,7 +74,7 @@ public class MCSinkTap<Config> extends SinkTap<Config, Object>
     }
 
   @Override
-  public TupleEntryCollector openForWrite( FlowProcess<Config> flowProcess, Object output ) throws IOException
+  public TupleEntryCollector openForWrite( FlowProcess<? extends Config> flowProcess, Object output ) throws IOException
     {
     return new MCSchemeCollector( flowProcess, (MCBaseScheme) getScheme(), hostNames, useBinaryProtocol, shutdownTimeoutSec, flushThreshold );
     }
