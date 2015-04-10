@@ -24,11 +24,8 @@ apply plugin: 'java'
 apply plugin: 'maven'
 apply plugin: 'idea'
 apply plugin: 'eclipse'
-apply plugin: 'fatjar'
-apply plugin: 'propdeps'
-apply plugin: 'propdeps-idea'
-apply plugin: 'propdeps-eclipse'
-apply plugin: 'propdeps-maven'
+apply plugin: 'provided-base'
+apply plugin: 'com.github.johnrengelman.shadow'
 
 ext.cascadingVersion = '3.0.0-wip-+'
 
@@ -43,12 +40,12 @@ ext.timestamp = new SimpleDateFormat( "yyyyMMdd" ).format( new Date() )
 buildscript {
   repositories {
     mavenCentral()
-    maven { url 'http://repo.springsource.org/plugins-release' }
+    jcenter()
   }
 
   dependencies {
-    classpath 'eu.appsatori:gradle-fatjar-plugin:0.2'
-    classpath 'org.springframework.build.gradle:propdeps-plugin:0.0.5'
+    classpath 'com.github.jengelman.gradle.plugins:shadow:1.2.1'
+    classpath 'com.netflix.nebula:gradle-extra-configurations-plugin:2.2.1'
   }
 }
 
@@ -104,15 +101,22 @@ task testSourcesJar( type: Jar, dependsOn: classes ) {
   classifier = 'test-sources'
 }
 
-fatJar {
-  classifier = 'provider'
-  exclude 'META-INF/*.DSA'
-  exclude 'META-INF/LICENSE*'
-}
+  shadowJar {
+    classifier = "provider"
+    configurations = []
+    from {
+      project.configurations.runtime.minus( [ project.configurations.provided ] )
+    }
+    mergeServiceFiles()
+
+    exclude 'LICENSE'
+    exclude 'META-INF/*.DSA'
+    exclude 'META-INF/LICENSE*'
+  }
 
 artifacts {
   archives jar
-  archives fatJar
+  archives shadowJar
   archives sourcesJar
   archives javadocJar
   archives testsJar
