@@ -64,7 +64,7 @@ repositories {
 }
 
 dependencies {
-  compile( 'spy:spymemcached:2.8.1' )
+  compile( 'net.spy:spymemcached:2.11.7' )
 
   provided group: 'cascading', name: 'cascading-core', version: cascadingVersion, changing: true
   provided group: 'org.slf4j', name: 'slf4j-api', version: '1.7.5'
