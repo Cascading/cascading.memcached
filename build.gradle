@@ -27,7 +27,7 @@ apply plugin: 'eclipse'
 apply plugin: 'provided-base'
 apply plugin: 'com.github.johnrengelman.shadow'
 
-ext.cascadingVersion = '3.0.0-wip-+'
+ext.cascadingVersion = '3.0.0'
 
 apply from: "etc/properties.gradle"
 apply from: "etc/version.gradle"
